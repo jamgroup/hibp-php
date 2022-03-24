@@ -8,22 +8,20 @@
 
 namespace Icawebdesign\Hibp\Password;
 
-use Tightenco\Collect\Support\Collection;
+use Icawebdesign\Hibp\HibpHttp;
+use Illuminate\Support\Collection;
 
 interface PwnedPasswordInterface
 {
-    public function __construct();
+    public function __construct(HibpHttp $hibpHttp);
 
-    /**
-     * @return int
-     */
     public function getStatusCode(): int;
 
-    public function rangeFromHash(string $hash): int;
+    public function rangeFromHash(string $hash, array $options): int;
 
-    public function rangeDataFromHash(string $hash): Collection;
+    public function rangeDataFromHash(string $hash, array $options): Collection;
 
-    public function paddedRangeFromHash(string $hash): int;
+    public function paddedRangeFromHash(string $hash, array $options): int;
 
-    public function paddedRangeDataFromHash(string $hash): Collection;
+    public function paddedRangeDataFromHash(string $hash, array $options): Collection;
 }

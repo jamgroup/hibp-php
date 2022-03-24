@@ -2,10 +2,15 @@
 
 namespace Icawebdesign\Hibp\Tests;
 
+use GuzzleHttp\Client;
 use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Psr7\Response;
 use Icawebdesign\Hibp\Exception\PasteNotFoundException;
+use Icawebdesign\Hibp\HibpHttp;
 use Icawebdesign\Hibp\Paste\Paste;
 use Icawebdesign\Hibp\Paste\PasteEntity;
+use Mockery;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -18,10 +23,10 @@ use PHPUnit\Framework\TestCase;
 class PasteTest extends TestCase
 {
     /** @var string */
-    protected $apiKey = '';
+    protected string $apiKey = '';
 
     /** @var Paste */
-    protected $paste;
+    protected Paste $paste;
 
     public function setUp(): void
     {
@@ -31,50 +36,72 @@ class PasteTest extends TestCase
         if (false !== $apiKey) {
             $this->apiKey = $apiKey;
         }
-
-        $this->paste = new Paste($this->apiKey);
     }
 
-    protected function delay(int $microseconds = 1600000): void
+    protected function tearDown(): void
     {
-        usleep($microseconds);
+        Mockery::close();
+
+        parent::tearDown();
     }
 
     /** @test */
     public function successfulLookupReturnsACollection(): void
     {
-        $this->delay();
-        $pastes = $this->paste->lookup('test@example.com');
+        $client = Mockery::mock(Client::class);
+        $client->allows([
+            'request' => new Response(200, [], self::mockAllPastes()),
+        ]);
 
-        $this->assertSame(200, $this->paste->getStatusCode());
-        $this->assertGreaterThan(0, $pastes->count());
+        $paste = new Paste(new HibpHttp(null, $client));
+        $pastes = $paste->lookup('test@example.com');
+
+        self::assertSame(200, $paste->getStatusCode());
+        self::assertGreaterThan(0, $pastes->count());
 
         /** @var PasteEntity $account */
         $account = $pastes->first();
 
-        $this->assertNotEmpty($account->getSource());
-        $this->assertNotEmpty($account->getId());
-        $this->assertIsInt($account->getEmailCount());
-        $this->assertIsString($account->getLink());
-        $this->assertIsInt($account->getEmailCount());
-        $this->assertGreaterThan(0, $account->getEmailCount());
+        self::assertNotEmpty($account->getSource());
+        self::assertNotEmpty($account->getId());
+        self::assertIsInt($account->getEmailCount());
+        self::assertIsString($account->getLink());
+        self::assertIsInt($account->getEmailCount());
+        self::assertGreaterThan(0, $account->getEmailCount());
     }
 
     /** @test */
     public function invalidLookupThrowsException(): void
     {
-        $this->delay();
         $this->expectException(RequestException::class);
 
-        $this->paste->lookup('invalid_email_address');
+        $request = Mockery::mock(Request::class);
+
+        $client = Mockery::mock(Client::class);
+        $client->shouldReceive('request')
+            ->andThrow(new RequestException('', $request));
+
+        $paste = new Paste(new HibpHttp(null, $client));
+        $paste->lookup('invalid_email_address');
     }
 
     /** @test */
     public function notFoundLookupThrowsPasteNotFoundException(): void
     {
-        $this->delay();
         $this->expectException(PasteNotFoundException::class);
 
-        $this->paste->lookup('unknown-address@example.com');
+        $client = Mockery::mock(Client::class);
+        $client->shouldReceive('request')
+            ->andThrow(new PasteNotFoundException(''));
+
+        $paste = new Paste(new HibpHttp(null, $client));
+        $paste->lookup('unknown-address@example.com');
+    }
+
+    private static function mockAllPastes(): string
+    {
+        $data = file_get_contents(sprintf('%s/_responses/pastes/all_pastes.json', __DIR__));
+
+        return (false !== $data) ? $data : '[]';
     }
 }

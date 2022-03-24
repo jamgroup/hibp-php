@@ -8,16 +8,17 @@
 
 namespace Icawebdesign\Hibp\Paste;
 
-use Tightenco\Collect\Support\Collection;
+use Icawebdesign\Hibp\HibpHttp;
+use Illuminate\Support\Collection;
 
 interface PasteInterface
 {
     /**
      * PasteInterface constructor.
      *
-     * @param string $apiKey
+     * @param HibpHttp $hibpHttp
      */
-    public function __construct(string $apiKey);
+    public function __construct(HibpHttp $hibpHttp);
 
     /**
      * @return int
@@ -26,8 +27,9 @@ interface PasteInterface
 
     /**
      * @param string $emailAddress
+     * @param array $options
      *
      * @return Collection
      */
-    public function lookup(string $emailAddress): Collection;
+    public function lookup(string $emailAddress, array $options = []): Collection;
 }

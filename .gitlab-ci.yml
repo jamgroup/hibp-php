@@ -1,5 +1,5 @@
 # Default runner image
-image: docker.2up.io/php7.4.3-cli:latest
+image: docker.2up.io/php7-cli:7.4.14
 
 # Define pipeline stages
 stages:
@@ -8,11 +8,11 @@ stages:
 #  - mess
   - static analysis
   - tests
-  - security
 
 composer:
   stage: prep
   script:
+    - composer self-update
     - composer install --prefer-dist --no-ansi --no-interaction --no-progress --no-scripts
   artifacts:
     paths:
@@ -22,17 +22,15 @@ composer:
   cache:
     paths:
       - vendor/
-  only:
-    refs:
-      - master
+  rules:
+    - if: '($CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "hibp-php5")'
 
 phpcs:
   stage: syntax
   script:
-    - ./vendor/bin/phpcs --error-severity=1 --warning-severity=8 --extensions=php
-  only:
-    refs:
-      - master
+    - ./vendor/bin/phpcs --error-severity=8 --warning-severity=8 --extensions=php
+  rules:
+    - if: '($CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "hibp-php5")'
 
 #phpmd:
 #  stage: mess
@@ -43,85 +41,65 @@ phpcs:
 #      - master
 #  allow_failure: true
 
-php-7.2-tests:
-  image: docker.2up.io/2up/php7.2-cli:latest
-  stage: tests
-  dependencies:
-    - composer
-  script:
-    - echo "$HIBP_API_KEY" > api.key
-    - vendor/bin/phpunit --configuration phpunit.xml.dist --colors=never --coverage-text
-  only:
-    refs:
-      - master
-
-php-7.2-stan:
-  image: docker.2up.io/2up/php7.2-cli:latest
-  stage: static analysis
-  dependencies:
-    - composer
-  script:
-    - vendor/bin/phpstan analyse -l 6 --memory-limit=256M src tests
-  only:
-    refs:
-      - master
-
-php-7.3-tests:
-  image: docker.2up.io/php7.3.14-cli:latest
-  stage: tests
-  dependencies:
-    - composer
-  script:
-    - echo "$HIBP_API_KEY" > api.key
-    - vendor/bin/phpunit --configuration phpunit.xml.dist --colors=never --coverage-text
-  only:
-    refs:
-      - master
-
-php-7.3-stan:
-  image: docker.2up.io/php7.3.14-cli:latest
-  stage: static analysis
-  dependencies:
-    - composer
-  script:
-    - vendor/bin/phpstan analyse -l 6 --memory-limit=256M src tests
-  only:
-    refs:
-      - master
-
 php-7.4-tests:
-  image: docker.2up.io/php7.4.3-cli:latest
+  image: docker.2up.io/php7-cli:7.4.14
   stage: tests
   dependencies:
     - composer
   script:
     - echo "$HIBP_API_KEY" > api.key
     - vendor/bin/phpunit --configuration phpunit.xml.dist --colors=never --coverage-text
-  only:
-    refs:
-      - master
+  rules:
+    - if: '($CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "hibp-php5")'
 
 php-7.4-stan:
-  image: docker.2up.io/php7.4.3-cli:latest
+  image: docker.2up.io/php7-cli:7.4.14
   stage: static analysis
   dependencies:
     - composer
   script:
-    - vendor/bin/phpstan analyse -l 6 --memory-limit=256M src tests
-  only:
-    refs:
-      - master
+    - vendor/bin/phpstan analyse -l 8 --memory-limit=256M src tests
+  rules:
+    - if: '($CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "hibp-php5")'
 
-sensiolabs:
-  stage: security
+php-8.0-tests:
+  image: digiserv/php8-cli:8.0.13
+  stage: tests
+  dependencies:
+    - composer
   script:
-    - test -d security-checker || git clone https://github.com/sensiolabs/security-checker.git
-    - cd security-checker
-    - composer install
-    - php security-checker security:check ../composer.lock
-  cache:
-    paths:
-      - security-checker/
-  only:
-    refs:
-      - master
+    - echo "$HIBP_API_KEY" > api.key
+    - vendor/bin/phpunit --configuration phpunit.xml.dist --colors=never --coverage-text
+  rules:
+    - if: '($CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "hibp-php5")'
+
+php-8.0-stan:
+  image: digiserv/php8-cli:8.0.13
+  stage: static analysis
+  dependencies:
+    - composer
+  script:
+    - vendor/bin/phpstan analyse -l 8 --memory-limit=256M src tests
+  rules:
+    - if: '($CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "hibp-php5")'
+
+php-8.1-tests:
+  image: digiserv/php8-cli:8.1.3
+  stage: tests
+  dependencies:
+    - composer
+  script:
+    - echo "$HIBP_API_KEY" > api.key
+    - vendor/bin/phpunit --configuration phpunit.xml.dist --colors=never --coverage-text
+  rules:
+    - if: '($CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "hibp-php5")'
+
+php-8.1-stan:
+  image: digiserv/php8-cli:8.1.3
+  stage: static analysis
+  dependencies:
+    - composer
+  script:
+    - vendor/bin/phpstan analyse -l 8 --memory-limit=256M src tests
+  rules:
+    - if: '($CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH == "hibp-php5")'

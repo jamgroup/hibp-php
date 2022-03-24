@@ -11,30 +11,29 @@ namespace Icawebdesign\Hibp\Paste;
 use Carbon\Carbon;
 use Exception;
 use stdClass;
-use Tightenco\Collect\Support\Collection;
 
 class PasteEntity
 {
     /** @var string */
-    protected $source;
+    protected string $source;
 
     /** @var string */
-    protected $id;
+    protected string $id;
 
     /** @var string */
-    protected $title;
+    protected string $title;
 
-    /** @var Carbon|null */
-    protected $date;
+    /** @var ?Carbon */
+    protected ?Carbon $date;
 
     /** @var int */
-    protected $emailCount;
+    protected int $emailCount;
 
     /** @var string */
-    protected $link;
+    protected string $link;
 
     /** @var array */
-    protected $pasteSites = [
+    protected array $pasteSites = [
         'pastebin' => 'https://pastebin.com/',
     ];
 
@@ -134,7 +133,9 @@ class PasteEntity
             return $this;
         }
 
-        $this->date = Carbon::createFromFormat('Y-m-d\TH:i:s\Z', $date);
+        $pasteDate = Carbon::createFromFormat('Y-m-d\TH:i:s\Z', $date);
+
+        $this->date = (false !== $pasteDate) ? $pasteDate : null;
 
         return $this;
     }
@@ -191,6 +192,10 @@ class PasteEntity
 
         if (array_key_exists($sourceKey, $this->pasteSites)) {
             $sourceLink = $this->pasteSites[$sourceKey] . $data->Id;
+        }
+
+        if (!property_exists($data, 'Title')) {
+            $data->Title = '';
         }
 
         $this

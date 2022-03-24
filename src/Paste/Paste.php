@@ -9,34 +9,31 @@
 namespace Icawebdesign\Hibp\Paste;
 
 use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\RequestException;
 use Icawebdesign\Hibp\Exception\PasteNotFoundException;
 use Icawebdesign\Hibp\Hibp;
-use Tightenco\Collect\Support\Collection;
+use Icawebdesign\Hibp\HibpHttp;
+use Illuminate\Support\Collection;
 
 class Paste implements PasteInterface
 {
-    /** @var Client */
-    protected $client;
+    /** @var ClientInterface */
+    protected ClientInterface $client;
 
     /** @var int */
-    protected $statusCode;
+    protected int $statusCode;
 
     /** @var string */
-    protected $apiRoot;
+    protected string $apiRoot;
 
-    public function __construct(string $apiKey)
+    public function __construct(HibpHttp $hibpHttp)
     {
         $config = (new Hibp())->loadConfig();
         $this->apiRoot = sprintf('%s/v%d', $config['hibp']['api_root'], $config['hibp']['api_version']);
-        $this->client = new Client([
-            'headers' => [
-                'User-Agent' => $config['global']['user_agent'],
-                'hibp-api-key' => $apiKey,
-            ],
-        ]);
+        $this->client = $hibpHttp->client();
     }
 
     /**
@@ -51,16 +48,18 @@ class Paste implements PasteInterface
      * Check for any pastes containing specified email address
      *
      * @param string $emailAddress
+     * @param array $options
      *
      * @return Collection
      * @throws GuzzleException
      */
-    public function lookup(string $emailAddress): Collection
+    public function lookup(string $emailAddress, array $options = []): Collection
     {
         try {
             $response = $this->client->request(
                 'GET',
-                sprintf('%s/pasteaccount/%s', $this->apiRoot, urlencode($emailAddress))
+                sprintf('%s/pasteaccount/%s', $this->apiRoot, urlencode($emailAddress)),
+                $options
             );
         } catch (ClientException $e) {
             $this->statusCode = $e->getCode();

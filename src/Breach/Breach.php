@@ -3,13 +3,14 @@
 namespace Icawebdesign\Hibp\Breach;
 
 use Exception;
-use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\ClientException;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\RequestException;
 use Icawebdesign\Hibp\Exception\BreachNotFoundException;
 use Icawebdesign\Hibp\Hibp;
-use Tightenco\Collect\Support\Collection;
+use Icawebdesign\Hibp\HibpHttp;
+use Illuminate\Support\Collection;
 
 /**
  * Breach module
@@ -19,25 +20,20 @@ use Tightenco\Collect\Support\Collection;
  */
 class Breach implements BreachInterface
 {
-    /** @var Client */
-    protected $client;
+    /** @var ClientInterface */
+    protected ClientInterface $client;
 
     /** @var int */
-    protected $statusCode;
+    protected int $statusCode;
 
     /** @var string */
-    protected $apiRoot;
+    protected string $apiRoot;
 
-    public function __construct(string $apiKey)
+    public function __construct(HibpHttp $hibpHttp)
     {
         $config = (new Hibp())->loadConfig();
         $this->apiRoot = sprintf('%s/v%d', $config['hibp']['api_root'], $config['hibp']['api_version']);
-        $this->client = new Client([
-            'headers' => [
-                'User-Agent' => $config['global']['user_agent'],
-                'hibp-api-key' => $apiKey,
-            ],
-        ]);
+        $this->client = $hibpHttp->client();
     }
 
     /**
@@ -51,12 +47,13 @@ class Breach implements BreachInterface
     /**
      * Get all breach sites in system
      *
-     * @param string $domainFilter
+     * @param ?string $domainFilter
+     * @param array $options
      *
-     * @return Collection<array>php
+     * @return Collection
      * @throws GuzzleException
      */
-    public function getAllBreachSites(string $domainFilter = null): Collection
+    public function getAllBreachSites(string $domainFilter = null, array $options = []): Collection
     {
         $uri = sprintf('%s/breaches', $this->apiRoot);
 
@@ -67,7 +64,8 @@ class Breach implements BreachInterface
         try {
             $response = $this->client->request(
                 'GET',
-                $uri
+                $uri,
+                $options
             );
         } catch (RequestException $e) {
             $this->statusCode = $e->getCode();
@@ -86,16 +84,18 @@ class Breach implements BreachInterface
      * Get breach data for single account
      *
      * @param string $account
+     * @param array $options
      *
      * @return BreachSiteEntity
-     * @throws Exception
+     * @throws Exception|GuzzleException
      */
-    public function getBreach(string $account): BreachSiteEntity
+    public function getBreach(string $account, array $options = []): BreachSiteEntity
     {
         try {
             $response = $this->client->request(
                 'GET',
-                sprintf('%s/breach/%s', $this->apiRoot, urlencode($account))
+                sprintf('%s/breach/%s', $this->apiRoot, urlencode($account)),
+                $options
             );
         } catch (ClientException $e) {
             $this->statusCode = $e->getCode();
@@ -118,15 +118,18 @@ class Breach implements BreachInterface
     /**
      * Get list of all data classes in the system
      *
+     * @param array $options
+     *
      * @return Collection
      * @throws GuzzleException
      */
-    public function getAllDataClasses(): Collection
+    public function getAllDataClasses(array $options = []): Collection
     {
         try {
             $response = $this->client->request(
                 'GET',
-                sprintf('%s/dataclasses', $this->apiRoot)
+                sprintf('%s/dataclasses', $this->apiRoot),
+                $options
             );
         } catch (ClientException $e) {
             $this->statusCode = $e->getCode();
@@ -143,7 +146,8 @@ class Breach implements BreachInterface
      *
      * @param string $emailAddress
      * @param bool $includeUnverified
-     * @param string $domainFilter
+     * @param ?string $domainFilter
+     * @param array $options
      *
      * @return Collection
      * @throws GuzzleException
@@ -153,7 +157,8 @@ class Breach implements BreachInterface
     public function getBreachedAccount(
         string $emailAddress,
         bool $includeUnverified = false,
-        string $domainFilter = null
+        string $domainFilter = null,
+        array $options = []
     ): Collection {
         $uri = sprintf(
             '%s/breachedaccount/%s?truncateResponse=false&includeUnverified=%s',
@@ -169,7 +174,8 @@ class Breach implements BreachInterface
         try {
             $response = $this->client->request(
                 'GET',
-                $uri
+                $uri,
+                $options
             );
         } catch (ClientException $e) {
             $this->statusCode = $e->getCode();
@@ -199,7 +205,8 @@ class Breach implements BreachInterface
      *
      * @param string $emailAddress
      * @param bool $includeUnverified
-     * @param string $domainFilter
+     * @param ?string $domainFilter
+     * @param array $options
      *
      * @return Collection
      * @throws GuzzleException
@@ -209,7 +216,8 @@ class Breach implements BreachInterface
     public function getBreachedAccountTruncated(
         string $emailAddress,
         bool $includeUnverified = false,
-        string $domainFilter = null
+        string $domainFilter = null,
+        array $options = []
     ): Collection {
         $uri = sprintf(
             '%s/breachedaccount/%s?truncateResponse=true&includeUnverified=%s',
@@ -225,7 +233,8 @@ class Breach implements BreachInterface
         try {
             $response = $this->client->request(
                 'GET',
-                $uri
+                $uri,
+                $options
             );
         } catch (RequestException $e) {
             $this->statusCode = $e->getCode();
